@@ -41,6 +41,37 @@ npm run dev
 
 The server will start on port 3000.
 
+## CLI Tool
+
+The package includes a command-line interface for testing and interacting with the agent bridge.
+
+### Usage
+
+```bash
+# List all email accounts
+./email-cli.js list
+
+# Read emails for a specific account
+./email-cli.js read work@example.com
+
+# Send an email
+./email-cli.js send personal@example.com user@test.com "Subject" "Body"
+```
+
+**Commands:**
+- `list` - List all email accounts
+- `read <account>` - Read emails for the specified account
+- `send <account> <to> <subject> <body>` - Send an email from the specified account
+
+**Environment Variables:**
+- `API_URL` - Agent bridge API URL (default: `http://localhost:3000`)
+
+**Example:**
+```bash
+# Use a different API URL
+API_URL=http://agent-bridge:3000 ./email-cli.js list
+```
+
 ## API Endpoint
 
 ### POST /email-command

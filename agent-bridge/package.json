@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "API bridge connecting AI agents to n8n workflows",
   "main": "server.js",
+  "bin": {
+    "email-cli": "./email-cli.js"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
