@@ -1,0 +1,303 @@
+{
+  "name": "Email Gateway - Manage Accounts",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "email-accounts",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "email-accounts-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "create",
+              "leftValue": "={{ $json.body.operation }}",
+              "rightValue": "create",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "list",
+              "leftValue": "={{ $json.body.operation }}",
+              "rightValue": "list",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "update",
+              "leftValue": "={{ $json.body.operation }}",
+              "rightValue": "update",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "delete",
+              "leftValue": "={{ $json.body.operation }}",
+              "rightValue": "delete",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "switch-operation",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list"
+        },
+        "table": {
+          "__rl": true,
+          "value": "email_accounts",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "={{ $('Webhook').item.json.body.name }}",
+            "email": "={{ $('Webhook').item.json.body.email }}",
+            "imap_host": "={{ $('Webhook').item.json.body.imap_host }}",
+            "imap_port": "={{ $('Webhook').item.json.body.imap_port || 993 }}",
+            "smtp_host": "={{ $('Webhook').item.json.body.smtp_host }}",
+            "smtp_port": "={{ $('Webhook').item.json.body.smtp_port || 587 }}",
+            "credentials": "={{ JSON.stringify($('Webhook').item.json.body.credentials) }}",
+            "active": "={{ $('Webhook').item.json.body.active !== false }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "create-account",
+      "name": "Create Account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "PLACEHOLDER",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, email, imap_host, imap_port, smtp_host, smtp_port, active, created_at\nFROM email_accounts\nORDER BY created_at DESC",
+        "options": {}
+      },
+      "id": "list-accounts",
+      "name": "List Accounts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        250
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "PLACEHOLDER",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE email_accounts\nSET \n  name = COALESCE('{{ $('Webhook').item.json.body.name }}', name),\n  imap_host = COALESCE('{{ $('Webhook').item.json.body.imap_host }}', imap_host),\n  imap_port = COALESCE({{ $('Webhook').item.json.body.imap_port }}, imap_port),\n  smtp_host = COALESCE('{{ $('Webhook').item.json.body.smtp_host }}', smtp_host),\n  smtp_port = COALESCE({{ $('Webhook').item.json.body.smtp_port }}, smtp_port),\n  credentials = COALESCE('{{ JSON.stringify($('Webhook').item.json.body.credentials) }}'::jsonb, credentials),\n  active = COALESCE({{ $('Webhook').item.json.body.active }}, active)\nWHERE id = '{{ $('Webhook').item.json.body.id }}'\nRETURNING *;",
+        "options": {}
+      },
+      "id": "update-account",
+      "name": "Update Account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "PLACEHOLDER",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM email_accounts\nWHERE id = '{{ $('Webhook').item.json.body.id }}'\nRETURNING id;",
+        "options": {}
+      },
+      "id": "delete-account",
+      "name": "Delete Account",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        550
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "PLACEHOLDER",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"account\": $json } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Create Account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "List Accounts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Account",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete Account",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Account": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Accounts": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Account": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Account": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "local-n8n-instance"
+  },
+  "id": "email-gateway-manage-accounts",
+  "tags": []
+}

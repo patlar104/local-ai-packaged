@@ -1,0 +1,200 @@
+{
+  "name": "Workflow State Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "workflow-state",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "workflow-state-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "get-state",
+              "leftValue": "={{ $json.body.operation }}",
+              "rightValue": "get",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "update-state",
+              "leftValue": "={{ $json.body.operation }}",
+              "rightValue": "update",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "switch-operation",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, workflow_name, last_run, status, checkpoint\nFROM workflow_state\nWHERE workflow_name = '{{ $('Webhook').item.json.body.workflow_name }}'",
+        "options": {}
+      },
+      "id": "get-workflow-state",
+      "name": "Get Workflow State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "PLACEHOLDER",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO workflow_state (workflow_name, last_run, status, checkpoint)\nVALUES (\n  '{{ $('Webhook').item.json.body.workflow_name }}',\n  NOW(),\n  '{{ $('Webhook').item.json.body.status }}',\n  '{{ JSON.stringify($('Webhook').item.json.body.checkpoint) }}'\n)\nON CONFLICT (workflow_name) \nDO UPDATE SET\n  last_run = NOW(),\n  status = '{{ $('Webhook').item.json.body.status }}',\n  checkpoint = '{{ JSON.stringify($('Webhook').item.json.body.checkpoint) }}'\nRETURNING *;",
+        "options": {}
+      },
+      "id": "update-workflow-state",
+      "name": "Update Workflow State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        680,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "PLACEHOLDER",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "respond-get",
+      "name": "Respond - Get",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"workflow_state\": $json } }}",
+        "options": {}
+      },
+      "id": "respond-update",
+      "name": "Respond - Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Get Workflow State",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Workflow State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workflow State": {
+      "main": [
+        [
+          {
+            "node": "Respond - Get",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Workflow State": {
+      "main": [
+        [
+          {
+            "node": "Respond - Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "local-n8n-instance"
+  },
+  "id": "workflow-state-manager",
+  "tags": []
+}
