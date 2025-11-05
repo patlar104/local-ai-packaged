@@ -6,3 +6,27 @@ shared-backup/
 .env.test
 searxng/settings.yml
 searxng/uwsgi*
+
+# Supabase development files (not needed for Docker deployment)
+supabase/.cursorignore
+supabase/.dockerignore
+supabase/.misspell-fixer.ignore
+supabase/.npmrc
+supabase/.nvmrc
+supabase/.prettierignore
+supabase/.prettierrc
+supabase/CONTRIBUTING.md
+supabase/DEVELOPERS.md
+supabase/LICENSE
+supabase/Makefile
+supabase/README.md
+supabase/SECURITY.md
+supabase/data.sql
+supabase/knip.jsonc
+supabase/package.json
+supabase/pnpm-lock.yaml
+supabase/pnpm-workspace.yaml
+supabase/supa-mdx-lint.config.toml
+supabase/tsconfig.json
+supabase/turbo.json
+supabase/.gitignore
